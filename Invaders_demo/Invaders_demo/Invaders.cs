@@ -50,7 +50,8 @@ namespace Invaders_demo
 		void Update()
 		{
 			bool playerShoots = player.Update();
-
+			KeepInsideArea(player.transform, player.collision,
+				0, 0, window_width, window_height);
 			if (playerShoots)
 			{
 				Bullet bullet = new Bullet(player.transform.position, 
@@ -60,20 +61,35 @@ namespace Invaders_demo
 				bullets.Add(bullet);
 			}
 
+			Rectangle enemyRec = getRectangle(enemy.transform, enemy.collision);
 			foreach(Bullet bullet in bullets)
 			{
 				bullet.Update();
+				Rectangle bulletRec = getRectangle(bullet.transform, bullet.collision);
+				if (Raylib.CheckCollisionRecs(bulletRec, enemyRec))
+				{
+					if (enemy.active)
+					{
+						// Enemy hit!
+						Console.WriteLine("Enemy Hit!");
+						enemy.active = false;
+					}
+				}
 			}
-			enemy.Update();
 
+			enemy.Update();
 			bool enemyOut = KeepInsideArea(enemy.transform, enemy.collision, 0, 0, window_width, window_height);
 			if (enemyOut)
 			{
 				enemy.transform.direction.X *= -1.0f;
 			}
+		}
 
-			KeepInsideArea(player.transform, player.collision,
-				0, 0, window_width, window_height);
+		Rectangle getRectangle(TransformComponent t, CollisionComponent c)
+		{
+			Rectangle r = new Rectangle(t.position.X,
+				t.position.Y, c.size.X, c.size.Y);
+			return r;
 		}
 
 		/// <summary>
@@ -112,6 +128,5 @@ namespace Invaders_demo
 
 			enemy.Draw();
 		}
-
 	}
 }

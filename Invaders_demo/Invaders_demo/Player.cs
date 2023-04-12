@@ -9,10 +9,16 @@ namespace Invaders_demo
 		public TransformComponent transform { get; private set; }
 		public CollisionComponent collision;
 
+		// Bullet timing
+		double shootInterval = 0.3; // In seconds
+		double lastShootTime;
+
 		public Player(Vector2 startPos, float speed, int size)
 		{
 			transform = new TransformComponent(startPos, new Vector2(0,0), speed);
 			collision = new CollisionComponent(new Vector2(size, size));
+
+			lastShootTime = -shootInterval;
 		}
 
 
@@ -35,8 +41,14 @@ namespace Invaders_demo
 			if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
 			{
 				// Player shoots
-				Console.WriteLine("Player shoots!");
-				return true;
+				double timeNow = Raylib.GetTime();
+				double timeSinceLastShot = timeNow - lastShootTime;
+				if (timeSinceLastShot >= shootInterval)
+				{
+					Console.WriteLine("Player shoots!");
+					lastShootTime = timeNow;
+					return true;
+				}
 			}
 			return false;
 
