@@ -9,13 +9,21 @@ namespace Invaders_demo
 {
 	internal class Bullet
 	{
+		public bool isActive;
 		public TransformComponent transform;
 		public CollisionComponent collision;
 
 		public Bullet(Vector2 startPosition, Vector2 direction, float speed, int size)
 		{
-			this.transform = new TransformComponent(startPosition, direction, speed);
-			this.collision = new CollisionComponent(new Vector2(size, size));
+			Reset(startPosition, direction, speed, size);	 
+		}
+
+		public void Reset(Vector2 startPosition, Vector2 direction, float speed, int size)
+		{
+			isActive = true;
+
+			transform = new TransformComponent(startPosition, direction, speed);
+			collision = new CollisionComponent(new Vector2(size, size));
 		}
 
 		public void Update()

@@ -13,9 +13,9 @@ namespace Invaders_demo
 		double shootInterval = 0.3; // In seconds
 		double lastShootTime;
 
-		public Player(Vector2 startPos, float speed, int size)
+		public Player(Vector2 startPos, Vector2 direction, float speed, int size)
 		{
-			transform = new TransformComponent(startPos, new Vector2(0,0), speed);
+			transform = new TransformComponent(startPos, direction, speed);
 			collision = new CollisionComponent(new Vector2(size, size));
 
 			lastShootTime = -shootInterval;
@@ -29,6 +29,9 @@ namespace Invaders_demo
 		public bool Update()
 		{
 			float deltaTime = Raylib.GetFrameTime();
+
+
+			// TODO Change this to modify direction instead of position directly
 			if (Raylib.IsKeyDown(KeyboardKey.KEY_A))
 			{
 				transform.position.X -= transform.speed * deltaTime;
@@ -38,6 +41,7 @@ namespace Invaders_demo
 				transform.position.X += transform.speed * deltaTime;
 			}
 
+			bool shoot = false;
 			if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
 			{
 				// Player shoots
@@ -47,11 +51,10 @@ namespace Invaders_demo
 				{
 					Console.WriteLine("Player shoots!");
 					lastShootTime = timeNow;
-					return true;
+					shoot = true;
 				}
 			}
-			return false;
-
+			return shoot;
 		}
 
 		public void Draw()

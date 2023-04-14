@@ -16,6 +16,16 @@ namespace Invaders_demo
 			collision = new CollisionComponent(new Vector2(size, size));
 			active = true;
 		}
+		internal void Update()
+		{
+			// TODO
+			// every now and then shoot at player
+			if (active)
+			{
+				float deltaTime = Raylib.GetFrameTime();
+				transform.position += transform.direction * transform.speed * deltaTime;
+			}
+		}
 		internal void Draw()
 		{
 			if (active)
@@ -24,16 +34,5 @@ namespace Invaders_demo
 			}
 		}
 
-		internal void Update()
-		{
-			// TODO
-			// Move from side to side
-			// every now and then shoot at player???
-			if (active)
-			{
-				float deltaTime = Raylib.GetFrameTime();
-				transform.position += transform.direction * transform.speed * deltaTime;
-			}
-		}
 	}
 }
