@@ -1,5 +1,6 @@
 ﻿using Raylib_CsLo;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Invaders_demo
 {
@@ -20,20 +21,22 @@ namespace Invaders_demo
 
 		void Init()
 		{
-			// TODO luo ikkuna ja pelaaja ym.
 			Raylib.InitWindow(window_width, window_height, "Space Invaders Demo");
 			Raylib.SetTargetFPS(30);
 
 			float playerSpeed = 120;
 			int playerSize = 40;
-			Vector2 playerStart = new Vector2( window_width / 2 , window_height - playerSize * 2);
-			player = new Player(playerStart, playerSpeed, playerSize);
+			Vector2 playerStart = new Vector2(window_width / 2, window_height - playerSize * 2);
+			player = new Player(playerStart, new Vector2(0,0), playerSpeed, playerSize);
 
 			bullets = new List<Bullet>();
+			// enemies = new List<Enemy>();
 
-			Vector2 enemyStart = new Vector2( window_width / 2 , playerSize * 2);
+			Vector2 enemyStart = new Vector2(window_width / 2, playerSize * 2);
+
 			enemy = new Enemy(enemyStart, new Vector2(1, 0), playerSpeed, playerSize);
 		}
+		
 		void GameLoop()
 		{
 			while (Raylib.WindowShouldClose() == false)
@@ -54,21 +57,38 @@ namespace Invaders_demo
 				0, 0, window_width, window_height);
 			if (playerShoots)
 			{
-				Bullet bullet = new Bullet(player.transform.position, 
+				// Create bullet
+				CreateBullet(player.transform.position, 
 					new Vector2(0, -1), 
 					300, 20);
 
-				bullets.Add(bullet);
+				Console.WriteLine($"Bullet count: {bullets.Count}");
 			}
+
+
+			// TODO test collision against every enemy!
 
 			Rectangle enemyRec = getRectangle(enemy.transform, enemy.collision);
 			foreach(Bullet bullet in bullets)
 			{
-				bullet.Update();
-				Rectangle bulletRec = getRectangle(bullet.transform, bullet.collision);
-				if (Raylib.CheckCollisionRecs(bulletRec, enemyRec))
+				if (bullet.isActive == false)
 				{
-					if (enemy.active)
+					continue;
+				}
+				bullet.Update();
+
+				bool isOutside = KeepInsideArea(bullet.transform, bullet.collision, 0, 0, window_width, window_height);
+
+				if (isOutside)
+				{
+					bullet.isActive = false;
+					continue;
+				}
+
+				if (enemy.active)
+				{
+					Rectangle bulletRec = getRectangle(bullet.transform, bullet.collision);
+					if (Raylib.CheckCollisionRecs(bulletRec, enemyRec))
 					{
 						// Enemy hit!
 						Console.WriteLine("Enemy Hit!");
@@ -82,6 +102,33 @@ namespace Invaders_demo
 			if (enemyOut)
 			{
 				enemy.transform.direction.X *= -1.0f;
+			}
+		}
+
+		/// <summary>
+		/// Either reactivates existing bullet or creates a new one
+		/// </summary>
+		/// <param name="pos">Starting position</param>
+		/// <param name="dir">Starting direction</param>
+		/// <param name="speed">Speed in pixels</param>
+		/// <param name="size">Size in pixels</param>
+		void CreateBullet(Vector2 pos, Vector2 dir, float speed, int size)
+		{
+			bool found = false;
+			foreach(Bullet bullet in bullets)
+			{
+				if (bullet.isActive == false)
+				{
+					// Reset this
+					bullet.Reset(pos, dir, speed, size);
+					found = true;
+					break;
+				}
+			}
+			// No inactive bullets found!
+			if (found == false)
+			{
+				bullets.Add(new Bullet(pos, dir, speed, size));
 			}
 		}
 
@@ -123,10 +170,13 @@ namespace Invaders_demo
 
 			foreach(Bullet bullet in bullets)
 			{
-				bullet.Draw();
+				if (bullet.isActive)
+				{
+					bullet.Draw();
+				}
 			}
 
-			enemy.Draw();
+				enemy.Draw();
 		}
 	}
 }
