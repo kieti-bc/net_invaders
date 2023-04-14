@@ -9,7 +9,7 @@ namespace Invaders_demo
 {
 	internal class Bullet
 	{
-		public bool isActive;
+		public bool active;
 		public TransformComponent transform;
 		public CollisionComponent collision;
 
@@ -20,7 +20,7 @@ namespace Invaders_demo
 
 		public void Reset(Vector2 startPosition, Vector2 direction, float speed, int size)
 		{
-			isActive = true;
+			active = true;
 
 			transform = new TransformComponent(startPosition, direction, speed);
 			collision = new CollisionComponent(new Vector2(size, size));

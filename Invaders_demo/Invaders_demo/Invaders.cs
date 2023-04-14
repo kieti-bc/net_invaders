@@ -11,7 +11,7 @@ namespace Invaders_demo
 
 		Player player;
 		List<Bullet> bullets;
-		Enemy enemy;
+		List<Enemy> enemies;
 
 		public void Run()
 		{
@@ -27,16 +27,40 @@ namespace Invaders_demo
 			float playerSpeed = 120;
 			int playerSize = 40;
 			Vector2 playerStart = new Vector2(window_width / 2, window_height - playerSize * 2);
-			player = new Player(playerStart, new Vector2(0,0), playerSpeed, playerSize);
+			player = new Player(playerStart, new Vector2(0, 0), playerSpeed, playerSize);
 
 			bullets = new List<Bullet>();
-			// enemies = new List<Enemy>();
 
-			Vector2 enemyStart = new Vector2(window_width / 2, playerSize * 2);
+			enemies = new List<Enemy>();
 
-			enemy = new Enemy(enemyStart, new Vector2(1, 0), playerSpeed, playerSize);
+			/*  Formation is 
+			 *  X X X X 
+			 *  X X X X
+			 */
+			int rows = 2;
+			int columns = 4;
+			int startX = 0;
+			int startY = playerSize;
+			int currentX = startX;
+			int currentY = startY;
+			int enemyBetween = playerSize;
+			for (int row = 0; row < rows; row++)
+			{
+				currentX = startX; // Reset at start of new row
+				for (int col = 0; col < columns; col++)
+				{
+					Vector2 enemyStart = new Vector2(currentX, currentY);
+
+					Enemy enemy = new Enemy(enemyStart, new Vector2(1, 0), playerSpeed, playerSize);
+
+					enemies.Add(enemy);
+
+					currentX += playerSize + enemyBetween; // Horizontal space between enemies
+				}
+				currentY += playerSize + enemyBetween; // Vertical space between enemies
+			}
 		}
-		
+
 		void GameLoop()
 		{
 			while (Raylib.WindowShouldClose() == false)
@@ -52,59 +76,101 @@ namespace Invaders_demo
 		}
 		void Update()
 		{
+			UpdatePlayer();
+			UpdateEnemies();
+			UpdateBullets();
+			CheckCollisions(); // Between enemies and bullets
+		}
+		void UpdatePlayer()
+		{
 			bool playerShoots = player.Update();
 			KeepInsideArea(player.transform, player.collision,
 				0, 0, window_width, window_height);
 			if (playerShoots)
 			{
 				// Create bullet
-				CreateBullet(player.transform.position, 
-					new Vector2(0, -1), 
+				CreateBullet(player.transform.position,
+					new Vector2(0, -1),
 					300, 20);
 
 				Console.WriteLine($"Bullet count: {bullets.Count}");
 			}
-
-
-			// TODO test collision against every enemy!
-
-			Rectangle enemyRec = getRectangle(enemy.transform, enemy.collision);
-			foreach(Bullet bullet in bullets)
+		}
+		void UpdateEnemies()
+		{
+			bool changeFormationDirection = false;
+			foreach (Enemy enemy in enemies)
 			{
-				if (bullet.isActive == false)
-				{
-					continue;
-				}
-				bullet.Update();
-
-				bool isOutside = KeepInsideArea(bullet.transform, bullet.collision, 0, 0, window_width, window_height);
-
-				if (isOutside)
-				{
-					bullet.isActive = false;
-					continue;
-				}
-
 				if (enemy.active)
 				{
+					enemy.Update();
+					bool enemyOut = KeepInsideArea(enemy.transform, enemy.collision, 0, 0, window_width, window_height);
+					if (enemyOut)
+					{
+						changeFormationDirection = true;
+					}
+				}
+			}
+			if (changeFormationDirection)
+			{
+				foreach (Enemy enemy in enemies)
+				{
+					enemy.transform.direction.X *= -1.0f;
+				}
+			}
+		}
+		void UpdateBullets()
+		{
+			foreach (Bullet bullet in bullets)
+			{
+				if (bullet.active)
+				{
+					bullet.Update();
+
+					bool isOutside = KeepInsideArea(bullet.transform, bullet.collision, 0, 0, window_width, window_height);
+
+					if (isOutside)
+					{
+						bullet.active = false;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Test each enemy against each bullet for collision.
+		/// On collision set both enemy and bullet as inactive.
+		/// </summary>
+		void CheckCollisions()
+		{
+			foreach (Enemy enemy in enemies)
+			{
+				if (enemy.active == false)
+				{
+					continue;
+				}
+				Rectangle enemyRec = getRectangle(enemy.transform, enemy.collision);
+
+				foreach (Bullet bullet in bullets)
+				{
+					if (bullet.active == false)
+					{
+						continue;
+					}
 					Rectangle bulletRec = getRectangle(bullet.transform, bullet.collision);
+
 					if (Raylib.CheckCollisionRecs(bulletRec, enemyRec))
 					{
 						// Enemy hit!
 						Console.WriteLine("Enemy Hit!");
 						enemy.active = false;
+						bullet.active = false;
+						// Do not test the rest of bullets
+						break;
 					}
 				}
 			}
-
-			enemy.Update();
-			bool enemyOut = KeepInsideArea(enemy.transform, enemy.collision, 0, 0, window_width, window_height);
-			if (enemyOut)
-			{
-				enemy.transform.direction.X *= -1.0f;
-			}
 		}
-
 		/// <summary>
 		/// Either reactivates existing bullet or creates a new one
 		/// </summary>
@@ -117,7 +183,7 @@ namespace Invaders_demo
 			bool found = false;
 			foreach(Bullet bullet in bullets)
 			{
-				if (bullet.isActive == false)
+				if (bullet.active == false)
 				{
 					// Reset this
 					bullet.Reset(pos, dir, speed, size);
@@ -170,13 +236,19 @@ namespace Invaders_demo
 
 			foreach(Bullet bullet in bullets)
 			{
-				if (bullet.isActive)
+				if (bullet.active)
 				{
 					bullet.Draw();
 				}
 			}
 
-				enemy.Draw();
+			foreach (Enemy enemy in enemies)
+			{
+				if (enemy.active)
+				{
+					enemy.Draw();
+				}
+			}
 		}
 	}
 }
