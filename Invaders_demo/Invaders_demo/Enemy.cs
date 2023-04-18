@@ -9,12 +9,22 @@ namespace Invaders_demo
 		public TransformComponent transform;
 		public CollisionComponent collision;
 		public bool active;
+		public int scoreValue;
 
-		public Enemy(Vector2 startPosition, Vector2 direction, float speed, int size)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="startPosition"></param>
+		/// <param name="direction"></param>
+		/// <param name="speed"></param>
+		/// <param name="size"></param>
+		/// <param name="score">How many points for destroying this enemy</param>
+		public Enemy(Vector2 startPosition, Vector2 direction, float speed, int size, int score)
 		{
 			transform = new TransformComponent(startPosition, direction, speed);
 			collision = new CollisionComponent(new Vector2(size, size));
 			active = true;
+			scoreValue = score;
 		}
 		internal void Update()
 		{

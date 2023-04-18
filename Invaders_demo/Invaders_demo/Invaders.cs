@@ -6,12 +6,22 @@ namespace Invaders_demo
 {
 	internal class Invaders
 	{
+		enum GameState
+		{
+			Play,
+			ScoreScreen
+		}
+		GameState state;
+
 		int window_width = 640;
 		int window_height = 420;
 
 		Player player;
 		List<Bullet> bullets;
 		List<Enemy> enemies;
+
+		// how much score player has
+		int scoreCounter = 0;
 
 		public void Run()
 		{
@@ -23,6 +33,8 @@ namespace Invaders_demo
 		{
 			Raylib.InitWindow(window_width, window_height, "Space Invaders Demo");
 			Raylib.SetTargetFPS(30);
+
+			state = GameState.Play;
 
 			float playerSpeed = 120;
 			int playerSize = 40;
@@ -37,21 +49,34 @@ namespace Invaders_demo
 			 *  X X X X 
 			 *  X X X X
 			 */
-			int rows = 2;
+			int rows = 4;
 			int columns = 4;
 			int startX = 0;
 			int startY = playerSize;
 			int currentX = startX;
 			int currentY = startY;
 			int enemyBetween = playerSize;
+
+			int maxScore = 40;
+			int minScore = 10;
+			int currentScore = maxScore;
+
 			for (int row = 0; row < rows; row++)
 			{
 				currentX = startX; // Reset at start of new row
+
+				// Score decreases when goin down
+				currentScore = maxScore - row * 10;
+				if (currentScore < minScore)
+				{
+					currentScore = minScore;
+				}
 				for (int col = 0; col < columns; col++)
 				{
 					Vector2 enemyStart = new Vector2(currentX, currentY);
+					int enemyScore = currentScore;
 
-					Enemy enemy = new Enemy(enemyStart, new Vector2(1, 0), playerSpeed, playerSize);
+					Enemy enemy = new Enemy(enemyStart, new Vector2(1, 0), playerSpeed, playerSize, enemyScore);
 
 					enemies.Add(enemy);
 
@@ -65,13 +90,27 @@ namespace Invaders_demo
 		{
 			while (Raylib.WindowShouldClose() == false)
 			{
-				// UPDATE
-				Update();
-				// DRAW
-				Raylib.BeginDrawing();
-				Raylib.ClearBackground(Raylib.YELLOW);
-				Draw();
-				Raylib.EndDrawing();
+				switch (state)
+				{
+					case GameState.Play:
+						// UPDATE
+						Update();
+						// DRAW
+						Raylib.BeginDrawing();
+						Raylib.ClearBackground(Raylib.YELLOW);
+						Draw();
+						Raylib.EndDrawing();
+						break;
+
+					case GameState.ScoreScreen:
+						// ScoreUpdate();	// Wait for any input, restart on input
+						Raylib.BeginDrawing();
+						Raylib.ClearBackground(Raylib.YELLOW);
+						// ScoreDraw(); // Draw text you win, with {score} points
+						Raylib.EndDrawing();
+
+						break;
+				}
 			}
 		}
 		void Update()
@@ -162,9 +201,16 @@ namespace Invaders_demo
 					if (Raylib.CheckCollisionRecs(bulletRec, enemyRec))
 					{
 						// Enemy hit!
-						Console.WriteLine("Enemy Hit!");
+						Console.WriteLine($"Enemy Hit! Got {enemy.scoreValue} points!");
+						scoreCounter += enemy.scoreValue;
 						enemy.active = false;
 						bullet.active = false;
+
+						int enemiesLeft = CountAliveEnemies();
+						if (enemiesLeft == 0)
+						{
+							// Win game
+						}
 						// Do not test the rest of bullets
 						break;
 					}
@@ -249,6 +295,22 @@ namespace Invaders_demo
 					enemy.Draw();
 				}
 			}
+
+			// Draw score
+			Raylib.DrawText(scoreCounter.ToString(), 10, 10, 16, Raylib.BLACK);
+		}
+
+		int CountAliveEnemies()
+		{
+			int alive = 0;
+			foreach(Enemy enemy in enemies)
+			{
+				if(enemy.active)
+				{
+					alive++;
+				}
+			}
+			return alive;
 		}
 	}
 }
