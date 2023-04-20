@@ -13,10 +13,15 @@ namespace Invaders_demo
 		double shootInterval = 0.3; // In seconds
 		double lastShootTime;
 
-		public Player(Vector2 startPos, Vector2 direction, float speed, int size)
+		// TODO spriteRenderer
+		Texture image;
+
+		public Player(Vector2 startPos, Vector2 direction, float speed, int size, Texture image)
 		{
 			transform = new TransformComponent(startPos, direction, speed);
 			collision = new CollisionComponent(new Vector2(size, size));
+
+			this.image = image;
 
 			lastShootTime = -shootInterval;
 		}
@@ -59,7 +64,15 @@ namespace Invaders_demo
 
 		public void Draw()
 		{
-			Raylib.DrawRectangleV(transform.position, collision.size, Raylib.SKYBLUE);
+			// Expecting size and image to be squares
+			float scaleX = collision.size.X / image.width;
+			float scaleY = collision.size.Y / image.height;
+			float scale = Math.Min(scaleX, scaleY);
+
+			Raylib.DrawTextureEx(image, transform.position, 0.0f, scale, Raylib.WHITE);
+			//Raylib.DrawTextureV(image, transform.position, Raylib.WHITE);
+
+			Raylib.DrawRectangleLines((int)transform.position.X, (int)transform.position.Y, (int)collision.size.X, (int)collision.size.Y, Raylib.SKYBLUE);
 		}
 
 	}

@@ -36,10 +36,15 @@ namespace Invaders_demo
 
 			state = GameState.Play;
 
+			// Player init
+			Texture playerImage = Raylib.LoadTexture("data/images/playerShip2_green.png");
+
+
 			float playerSpeed = 120;
 			int playerSize = 40;
 			Vector2 playerStart = new Vector2(window_width / 2, window_height - playerSize * 2);
-			player = new Player(playerStart, new Vector2(0, 0), playerSpeed, playerSize);
+
+			player = new Player(playerStart, new Vector2(0, 0), playerSpeed, playerSize, playerImage);
 
 			bullets = new List<Bullet>();
 
