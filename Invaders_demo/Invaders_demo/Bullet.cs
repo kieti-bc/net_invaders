@@ -12,18 +12,23 @@ namespace Invaders_demo
 		public bool active;
 		public TransformComponent transform;
 		public CollisionComponent collision;
+		SpriteRendererComponent spriteRenderer;
 
-		public Bullet(Vector2 startPosition, Vector2 direction, float speed, int size)
+		public Bullet(Vector2 startPosition, Vector2 direction, float speed, int size, Texture image, Color color)
 		{
-			Reset(startPosition, direction, speed, size);	 
+			transform = new TransformComponent(startPosition, direction, speed);
+			collision = new CollisionComponent(new Vector2(size, size));
+			spriteRenderer = new SpriteRendererComponent(image, color, transform, collision);
 		}
 
 		public void Reset(Vector2 startPosition, Vector2 direction, float speed, int size)
 		{
-			active = true;
+			transform.position = startPosition;
+			transform.direction = direction;
+			transform.speed = speed;
+			collision.size = new Vector2(size, size);
 
-			transform = new TransformComponent(startPosition, direction, speed);
-			collision = new CollisionComponent(new Vector2(size, size));
+			active = true;
 		}
 
 		public void Update()
@@ -32,7 +37,7 @@ namespace Invaders_demo
 		}
 		public void Draw()
 		{
-			Raylib.DrawRectangleV(transform.position, collision.size, Raylib.RED);
+			spriteRenderer.Draw();
 		}
 	}
 }

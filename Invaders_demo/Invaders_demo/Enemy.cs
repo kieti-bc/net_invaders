@@ -7,6 +7,8 @@ namespace Invaders_demo
 	{
 		public TransformComponent transform;
 		public CollisionComponent collision;
+		SpriteRendererComponent spriteRenderer;
+
 		public bool active;
 		public int scoreValue;
 
@@ -18,10 +20,11 @@ namespace Invaders_demo
 		/// <param name="speed"></param>
 		/// <param name="size"></param>
 		/// <param name="score">How many points for destroying this enemy</param>
-		public Enemy(Vector2 startPosition, Vector2 direction, float speed, int size, int score)
+		public Enemy(Vector2 startPosition, Vector2 direction, float speed, int size, Texture image, int score)
 		{
 			transform = new TransformComponent(startPosition, direction, speed);
 			collision = new CollisionComponent(new Vector2(size, size));
+			spriteRenderer = new SpriteRendererComponent(image, Raylib.RED, transform, collision);
 			active = true;
 			scoreValue = score;
 		}
@@ -39,7 +42,7 @@ namespace Invaders_demo
 		{
 			if (active)
 			{
-				Raylib.DrawRectangleV(transform.position, collision.size, Raylib.DARKBROWN);
+				spriteRenderer.Draw();
 			}
 		}
 

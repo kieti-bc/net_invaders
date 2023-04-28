@@ -1,5 +1,6 @@
 ﻿using Raylib_CsLo;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Invaders_demo
 {
@@ -19,15 +20,20 @@ namespace Invaders_demo
 		List<Bullet> bullets;
 		List<Enemy> enemies;
 
+		float playerBulletSpeed;
+
+		int bulletSize;
+
 		double enemyShootInterval;
 		double lastEnemyShootTime;
 		float enemyBulletSpeed;
-		float enemyBulletSize;
 		float enemySpeed;
 		float enemySpeedDown;
 		float enemyMaxYLine;
 
 		Texture playerImage;
+		List<Texture> enemyImages;
+		Texture bulletImage;
 
 		// how much score player has
 		int scoreCounter = 0;
@@ -48,6 +54,15 @@ namespace Invaders_demo
 			// Player init
 			playerImage = Raylib.LoadTexture("data/images/playerShip2_green.png");
 
+			// Different enemy images for different rows
+			enemyImages = new List<Texture>(4);
+			enemyImages.Add(Raylib.LoadTexture("data/images/enemyBlack1.png"));
+			enemyImages.Add(Raylib.LoadTexture("data/images/enemyBlue2.png"));
+			enemyImages.Add(Raylib.LoadTexture("data/images/enemyGreen3.png"));
+			enemyImages.Add(Raylib.LoadTexture("data/images/enemyRed4.png"));
+
+			bulletImage = Raylib.LoadTexture("data/images/laserGreen14.png");
+
 			ResetGame();
 		}
 
@@ -56,20 +71,21 @@ namespace Invaders_demo
 		/// </summary>
 		void ResetGame()
 		{
-			float playerSpeed = 120;
+			float playerSpeed = 220;
 			int playerSize = 40;
 			Vector2 playerStart = new Vector2(window_width / 2, window_height - playerSize * 2);
 
 			player = new Player(playerStart, new Vector2(0, 0), playerSpeed, playerSize, playerImage);
+			playerBulletSpeed = 320;
 
 			bullets = new List<Bullet>();
+			bulletSize = 16;
 
 			enemies = new List<Enemy>();
 
 			enemyShootInterval = 1.0f;
 			lastEnemyShootTime = 5.0f; // Delays the first enemy shot
 			enemyBulletSpeed = 60;
-			enemyBulletSize = 10;
 			enemySpeed = playerSpeed;
 			enemySpeedDown = 10;
 			enemyMaxYLine = window_height - playerSize * 4;
@@ -85,6 +101,8 @@ namespace Invaders_demo
 			int currentX = startX;
 			int currentY = startY;
 			int enemyBetween = playerSize;
+
+			int enemySize = playerSize;
 
 			int maxScore = 40;
 			int minScore = 10;
@@ -105,13 +123,13 @@ namespace Invaders_demo
 					Vector2 enemyStart = new Vector2(currentX, currentY);
 					int enemyScore = currentScore;
 
-					Enemy enemy = new Enemy(enemyStart, new Vector2(1, 0), enemySpeed, playerSize, enemyScore);
+					Enemy enemy = new Enemy(enemyStart, new Vector2(1, 0), enemySpeed, enemySize, enemyImages[row], enemyScore);
 
 					enemies.Add(enemy);
 
-					currentX += playerSize + enemyBetween; // Horizontal space between enemies
+					currentX += enemySize + enemyBetween; // Horizontal space between enemies
 				}
-				currentY += playerSize + enemyBetween; // Vertical space between enemies
+				currentY += enemySize + enemyBetween; // Vertical space between enemies
 			}
 
 		}
@@ -127,7 +145,7 @@ namespace Invaders_demo
 						Update();
 						// DRAW
 						Raylib.BeginDrawing();
-						Raylib.ClearBackground(Raylib.YELLOW);
+						Raylib.ClearBackground(Raylib.DARKBLUE);
 						Draw();
 						Raylib.EndDrawing();
 						break;
@@ -157,10 +175,16 @@ namespace Invaders_demo
 				0, 0, window_width, window_height);
 			if (playerShoots)
 			{
-				// Create bullet
-				CreateBullet(player.transform.position,
+				// Create bullet on center of player
+				// Top left corner + half the size - half the bullet's size
+				float x = player.transform.position.X + player.collision.size.X / 2 - bulletSize / 2;
+				// just above the player;
+				float y = player.transform.position.Y - bulletSize;
+				Vector2 bPos = new Vector2(x, y);
+
+				CreateBullet(bPos,
 					new Vector2(0, -1),
-					300, 20);
+					playerBulletSpeed, bulletSize);
 
 				Console.WriteLine($"Bullet count: {bullets.Count}");
 			}
@@ -210,43 +234,72 @@ namespace Invaders_demo
 				{
 					// Create enemy bullet below shooter
 					// Travelling down the screen
-					CreateBullet(shooter.transform.position 
-						+ new Vector2(0, shooter.collision.size.Y),
-						new Vector2(0, 1), enemyBulletSpeed, (int)enemyBulletSize);
+					// Create bullet on center of enemy
+
+					// Top left corner + half the size - half the bullet's size
+					float x = shooter.transform.position.X + shooter.collision.size.X / 2 - bulletSize / 2;
+					// Below shooter
+					float y = shooter.transform.position.Y + shooter.collision.size.Y;
+					Vector2 bPos = new Vector2(x, y);
+
+					CreateBullet(bPos, new Vector2(0, 1), enemyBulletSpeed, (int)bulletSize);
 
 					lastEnemyShootTime = timeNow;
 				}
 			}
 		}
 
+		/// <summary>
+		/// Finds the enemy who is in the best position to shoot at the player
+		/// </summary>
+		/// <returns>The enemy who should shoot or null if no enemy is in good position</returns>
 		Enemy FindBestEnemyShooter()
 		{
-			// is active?
-			// closest to player on Y axis
-			// closest to player on X axis, under treshold?
+			/* Pick an enemy who:
+			 *  is active
+			 *  is closest to player on Y axis
+			 *  is within treshold to player on X axis.
+			 *  
+			 *  In a case where the first row has been partially
+			 *  destroyed, the function should select from the rows
+			 *  above if they have a good enemy
+			 *   
+			 *   in this situation the enemy O should be selected:
+			 *   X = enemy
+			 *   P = player
+			 *   
+			 *   X X X X
+			 *   X O X X
+			 *         X
+			 *         
+			 *     P
+			 */
 
 			Enemy best = null;
-			// Start from worst possible
+
+			// Start from worst possible values
 			float bestY = 0.0f;
 			float bestXDifference = window_width;
 
-			// start from last enemy
+			// start from last enemy, since lowest row is last in the enemies list
 			for(int i = enemies.Count-1; i >= 0; i--)
 			{
-				Enemy test = enemies[i];
-				if (test.active)
+				Enemy candidate = enemies[i];
+				if (candidate.active)
 				{
-					if(test.transform.position.Y >= bestY)
+					// The enemy must be same or below the current best Y or not a valid shooter
+					// has been found yet
+					if (candidate.transform.position.Y >= bestY || best == null)
 					{
 						// Found better Y
-						bestY = test.transform.position.Y;
+						bestY = candidate.transform.position.Y;
 
 						// Absolute value : itseisarvo
-						float xDifference = Math.Abs(player.transform.position.X - test.transform.position.X);
-						if (xDifference < bestXDifference && xDifference < 10)
+						float xDifference = Math.Abs(player.transform.position.X - candidate.transform.position.X);
+						if (xDifference < bestXDifference && xDifference < bulletSize)
 						{
 							bestXDifference = xDifference;
-							best = test;
+							best = candidate;
 						}
 					}
 				}
@@ -322,6 +375,7 @@ namespace Invaders_demo
 						if (Raylib.CheckCollisionRecs(bulletRec, playerRect))
 						{
 							state = GameState.ScoreScreen;
+							player.active = false;
 						}
 					}
 				}
@@ -350,7 +404,7 @@ namespace Invaders_demo
 			// No inactive bullets found!
 			if (found == false)
 			{
-				bullets.Add(new Bullet(pos, dir, speed, size));
+				bullets.Add(new Bullet(pos, dir, speed, size, bulletImage, Raylib.RED));
 			}
 		}
 
@@ -426,7 +480,7 @@ namespace Invaders_demo
 			}
 
 			// Draw score
-			Raylib.DrawText(scoreCounter.ToString(), 10, 10, 16, Raylib.BLACK);
+			Raylib.DrawText($"Score: {scoreCounter}", 10, 10, 20, Raylib.WHITE);
 		}
 
 		int CountAliveEnemies()
@@ -456,16 +510,26 @@ namespace Invaders_demo
 
 		void ScoreDraw()
 		{
-			Raylib.DrawText($"Final score {scoreCounter}", 
-				window_width /2 - 40, window_height/2 - 60, 20, Raylib.WHITE);
+			// Center both lines of text usin Raylib.MeasureText
 
-			Raylib.DrawText("Game over. Press Enter to play again", 
-				window_width /2 - 40, window_height/2, 20, Raylib.WHITE);
+			string scoreText = $"Final score {scoreCounter}";
+
+
+			string instructionText = "Game over. Press Enter to play again";
+			if (player.active == true)
+			{
+				instructionText = "You Won! Press Enter to play again";
+			}
+
+			int fontSize = 20;
+			int sw = Raylib.MeasureText(scoreText, fontSize);
+			int iw = Raylib.MeasureText(instructionText, fontSize);
+
+			Raylib.DrawText(scoreText, window_width /2 - sw / 2
+				, window_height/2 - 60, fontSize, Raylib.WHITE);
+
+			Raylib.DrawText(instructionText, window_width /2 - iw / 2, 
+				window_height/2, fontSize, Raylib.WHITE);
 		}
 	}
-
-
-
-
-
 }
