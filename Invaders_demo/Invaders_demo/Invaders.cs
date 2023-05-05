@@ -8,6 +8,7 @@ namespace Invaders_demo
 	{
 		enum GameState
 		{
+			Start,
 			Play,
 			ScoreScreen
 		}
@@ -19,6 +20,8 @@ namespace Invaders_demo
 		Player player;
 		List<Bullet> bullets;
 		List<Enemy> enemies;
+
+		List<Vector2> startScreenStars;
 
 		float playerBulletSpeed;
 
@@ -49,7 +52,7 @@ namespace Invaders_demo
 			Raylib.InitWindow(window_width, window_height, "Space Invaders Demo");
 			Raylib.SetTargetFPS(30);
 
-			state = GameState.Play;
+			state = GameState.Start;
 
 			// Player init
 			playerImage = Raylib.LoadTexture("data/images/playerShip2_green.png");
@@ -63,7 +66,13 @@ namespace Invaders_demo
 
 			bulletImage = Raylib.LoadTexture("data/images/laserGreen14.png");
 
-			ResetGame();
+			Random random = new Random();
+
+			startScreenStars = new List<Vector2>(20);
+			for(int i = 0; i < startScreenStars.Capacity; i++)
+			{
+				startScreenStars.Add(new Vector2(random.Next(0, window_width), random.Next(-window_height, -1)));
+			}
 		}
 
 		/// <summary>
@@ -140,6 +149,14 @@ namespace Invaders_demo
 			{
 				switch (state)
 				{
+					case GameState.Start:
+						StartUpdate();
+						Raylib.BeginDrawing();
+						Raylib.ClearBackground(Raylib.BLACK);
+						StartDraw();
+						Raylib.EndDrawing();
+
+						break;
 					case GameState.Play:
 						// UPDATE
 						Update();
@@ -494,6 +511,59 @@ namespace Invaders_demo
 				}
 			}
 			return alive;
+		}
+
+		void DrawTextCentered(string text, int y, int fontSize, Color color)
+		{
+			int sw = Raylib.MeasureText(text, fontSize);
+
+			Raylib.DrawText(text, window_width /2 - sw / 2
+				, y, fontSize, color);
+		}
+
+		void StartUpdate()
+		{
+			
+			for(int i = 0; i < startScreenStars.Count; i++)
+			{
+				Vector2 s = startScreenStars[i];
+				s.Y = s.Y + 40 * Raylib.GetFrameTime();
+				s.Y = s.Y % window_height;
+				startScreenStars[i] = new Vector2(s.X, s.Y);
+			}
+			if (Raylib.IsKeyPressed(KeyboardKey.KEY_ENTER))
+			{
+				ResetGame();
+				state = GameState.Play;
+			}
+		}
+
+		void StartDraw()
+		{
+
+			Raylib.DrawCircleGradient(window_width / 2, window_height / 2 -100, window_height * 3.0f, Raylib.BLACK, Raylib.BLUE);
+
+			// Draw stars
+			for(int i = 0; i < startScreenStars.Count; i++)
+			{
+				Raylib.DrawCircleGradient((int)startScreenStars[i].X, (int)startScreenStars[i].Y, 4.0f, Raylib.WHITE, Raylib.BLACK);
+			}
+
+			Color[] colors = { Raylib.LIGHTGRAY, Raylib.GRAY, Raylib.DARKGRAY, Raylib.GREEN };
+			string gameName1 = "SPACE";
+			string gameName2 = "INVADERS";
+			int fontSize = 60;
+			for (int i = 0; i < colors.Length; i++)
+			{
+				double change = Math.Sin(Raylib.GetTime() + i) * 4.0;
+				double y = 120 + change * 14.0;
+
+				DrawTextCentered(gameName1, (int)(y), fontSize, colors[i]);
+				DrawTextCentered(gameName2, (int)(y + 60), fontSize, colors[i]);
+			}
+
+			string press = "Press ENTER";
+			DrawTextCentered(press, window_height/2, 30, Raylib.YELLOW);
 		}
 
 
