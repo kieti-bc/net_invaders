@@ -11,7 +11,7 @@ namespace Invaders_demo
 		SpriteRendererComponent spriteRenderer;
 
 		// Bullet timing
-		double shootInterval = 0.3; // In seconds
+		double shootInterval = 0.03; // In seconds
 		double lastShootTime;
 
 		public bool active;
@@ -34,27 +34,92 @@ namespace Invaders_demo
 		public bool Update()
 		{
 			float deltaTime = Raylib.GetFrameTime();
+			bool inputRight = false;
+			bool inputLeft = false;
 
+			// INPUT
 
-			// TODO Change this to modify direction instead of position directly
+			// KEYBOARD CONTROLS
 			if (Raylib.IsKeyDown(KeyboardKey.KEY_A))
 			{
-				transform.position.X -= transform.speed * deltaTime;
+				inputLeft = true;
 			}
 			else if (Raylib.IsKeyDown(KeyboardKey.KEY_D))
 			{
-				transform.position.X += transform.speed * deltaTime;
+				inputRight = true;
+			}
+			// MOUSE CONTROLS
+			Vector2 mousePos = Raylib.GetMousePosition();
+			Vector2 center = transform.position + collision.size / 2;
+
+			/*
+			 *    P---+    Mouse X
+			 *    |   |
+			 *    | c |
+			 *    |   |
+			 *    +---+
+			 */
+
+			if (center.X < mousePos.X)
+			{
+
+			}
+			if (center.X > mousePos.X)
+			{
+
+			}
+			/*
+
+			// Follow mouse movement
+			Vector2 toMouse = mousePos - center;
+			float frameMove = transform.speed * deltaTime;
+			if (toMouse.Length() > frameMove)
+			{
+				transform.direction = Vector2.Normalize(toMouse);
+			}
+			else
+			{
+				transform.direction = Vector2.Zero;
 			}
 
+			// Instant  movement ?!
+			transform.position = mousePos;
+
+			// Delta movement !!
+			transform.position += Raylib.GetMouseDelta();
+
+			Vector2 target = Raylib.GetMousePosition();
+			if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
+			{
+				// Start moving to target
+			}
+			*/
+
+
+			Vector2 moveDirection = new Vector2(0, 0);
+			if (inputRight)
+			{
+				moveDirection.X += 1;
+			}
+			if (inputLeft)
+			{
+				moveDirection.X -= 1;
+			}
+
+			transform.direction = moveDirection;
+
+			transform.position += transform.direction * transform.speed * deltaTime;
+
+
 			bool shoot = false;
-			if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
+			if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE) ||
+			Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
 			{
 				// Player shoots
 				double timeNow = Raylib.GetTime();
 				double timeSinceLastShot = timeNow - lastShootTime;
 				if (timeSinceLastShot >= shootInterval)
 				{
-					Console.WriteLine("Player shoots!");
 					lastShootTime = timeNow;
 					shoot = true;
 				}

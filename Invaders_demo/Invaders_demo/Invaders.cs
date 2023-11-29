@@ -4,58 +4,88 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace Invaders_demo
 {
+	/// <summary>
+	/// Invaders contains everything else
+	/// </summary>
 	internal class Invaders
 	{
+		// Game is always in one of these states
 		enum GameState
 		{
-			Start,
+			StartMenu,
+			SettingsMenu,
 			Play,
 			ScoreScreen
 		}
 		GameState state;
+		bool gamerunning = true;
 
 		int window_width = 640;
 		int window_height = 720;
 
+		// Gameplay elements
 		Player player;
 		List<Bullet> bullets;
 		List<Enemy> enemies;
 
-		List<Vector2> startScreenStars;
+		// Menus!
+		MainMenu mainMenu;
+		SettingsMenu settingsMenu;
 
+
+		// Gameplay variables
 		float playerBulletSpeed;
 
 		int bulletSize;
 
-		double enemyShootInterval;
-		double lastEnemyShootTime;
+		double enemyShootInterval; // How often enemy shoots
+		double lastEnemyShootTime; // When was the last enemy shot fired
+
 		float enemyBulletSpeed;
 		float enemySpeed;
 		float enemySpeedDown;
 		float enemyMaxYLine;
 
+		// how much score player has
+		int scoreCounter = 0;
+
+		// Assets
 		Texture playerImage;
 		List<Texture> enemyImages;
 		Texture bulletImage;
 
-		// how much score player has
-		int scoreCounter = 0;
+		Sound enemyExplode;
+		Sound playerDeath;
+
+		Font scoreScreenFont;
 
 		public void Run()
 		{
 			Init();
 			GameLoop();
+			CleanUp();
+			Raylib.CloseWindow();
 		}
 
+		/// <summary>
+		///  Init should happen only once per program execution
+		/// </summary>
 		void Init()
 		{
+			// InitWindow should be the first thing to be called
 			Raylib.InitWindow(window_width, window_height, "Space Invaders Demo");
 			Raylib.SetTargetFPS(30);
+			Raylib.InitAudioDevice();
+			RayGui.GuiLoadStyle("data/styles/invaders.rgs");
 
-			state = GameState.Start;
+			// Create class instances and load assets
+
+			state = GameState.StartMenu;
 
 			// Player init
 			playerImage = Raylib.LoadTexture("data/images/playerShip2_green.png");
+
+			enemyExplode = Raylib.LoadSound("data/audio/EnemyExplode.wav");
 
 			// Different enemy images for different rows
 			enemyImages = new List<Texture>(4);
@@ -68,11 +98,39 @@ namespace Invaders_demo
 
 			Random random = new Random();
 
-			startScreenStars = new List<Vector2>(20);
-			for(int i = 0; i < startScreenStars.Capacity; i++)
-			{
-				startScreenStars.Add(new Vector2(random.Next(0, window_width), random.Next(-window_height, -1)));
-			}
+			// Create menus
+			// And start listening to events
+			mainMenu = new MainMenu();
+			mainMenu.StartButtonPressed += OnStartButtonPressed;
+			mainMenu.SettingsButtonPressed += OnSettingsButtonPressed;
+			mainMenu.QuitButtonPressed += OnQuitButtonPressed;
+
+			settingsMenu = new SettingsMenu();
+			settingsMenu.BackButtonPressed += OnSettingsBackButtonPressed;
+		}
+
+		void CleanUp()
+		{
+			Raylib.UnloadSound(enemyExplode);
+		}
+
+		void OnStartButtonPressed(Object sender, EventArgs e)
+		{
+			ResetGame();
+			state = GameState.Play;
+		}
+		void OnSettingsButtonPressed(Object sender, EventArgs e)
+		{
+			state = GameState.SettingsMenu;
+		}
+		void OnQuitButtonPressed(Object sender, EventArgs e)
+		{
+			gameRunning = false;
+		}
+
+		void OnSettingsBackButtonPressed(Object sender, EventArgs e)
+		{
+			state = GameState.StartMenu;
 		}
 
 		/// <summary>
@@ -80,7 +138,7 @@ namespace Invaders_demo
 		/// </summary>
 		void ResetGame()
 		{
-			float playerSpeed = 220;
+			float playerSpeed = 120;
 			int playerSize = 40;
 			Vector2 playerStart = new Vector2(window_width / 2, window_height - playerSize * 2);
 
@@ -145,17 +203,23 @@ namespace Invaders_demo
 
 		void GameLoop()
 		{
-			while (Raylib.WindowShouldClose() == false)
+			while (Raylib.WindowShouldClose() == false && gamerunning)
 			{
 				switch (state)
 				{
-					case GameState.Start:
-						StartUpdate();
+					case GameState.StartMenu:
+						mainMenu.Update();
 						Raylib.BeginDrawing();
 						Raylib.ClearBackground(Raylib.BLACK);
-						StartDraw();
+						mainMenu.ShowMenu();
 						Raylib.EndDrawing();
 
+						break;
+					case GameState.SettingsMenu:
+						Raylib.BeginDrawing();
+						Raylib.ClearBackground(Raylib.BLACK);
+						settingsMenu.ShowMenu();
+						Raylib.EndDrawing();
 						break;
 					case GameState.Play:
 						// UPDATE
@@ -377,6 +441,8 @@ namespace Invaders_demo
 							enemy.active = false;
 							bullet.active = false;
 
+							Raylib.PlaySound(enemyExplode);
+
 							int enemiesLeft = CountAliveEnemies();
 							if (enemiesLeft == 0)
 							{
@@ -496,6 +562,8 @@ namespace Invaders_demo
 				}
 			}
 
+			// Raylib.DrawCircle(Raylib.GetMouseX(), Raylib.GetMouseY(), 5, Raylib.RED);
+
 			// Draw score
 			Raylib.DrawText($"Score: {scoreCounter}", 10, 10, 20, Raylib.WHITE);
 		}
@@ -512,60 +580,6 @@ namespace Invaders_demo
 			}
 			return alive;
 		}
-
-		void DrawTextCentered(string text, int y, int fontSize, Color color)
-		{
-			int sw = Raylib.MeasureText(text, fontSize);
-
-			Raylib.DrawText(text, window_width /2 - sw / 2
-				, y, fontSize, color);
-		}
-
-		void StartUpdate()
-		{
-			
-			for(int i = 0; i < startScreenStars.Count; i++)
-			{
-				Vector2 s = startScreenStars[i];
-				s.Y = s.Y + 40 * Raylib.GetFrameTime();
-				s.Y = s.Y % window_height;
-				startScreenStars[i] = new Vector2(s.X, s.Y);
-			}
-			if (Raylib.IsKeyPressed(KeyboardKey.KEY_ENTER))
-			{
-				ResetGame();
-				state = GameState.Play;
-			}
-		}
-
-		void StartDraw()
-		{
-
-			Raylib.DrawCircleGradient(window_width / 2, window_height / 2 -100, window_height * 3.0f, Raylib.BLACK, Raylib.BLUE);
-
-			// Draw stars
-			for(int i = 0; i < startScreenStars.Count; i++)
-			{
-				Raylib.DrawCircleGradient((int)startScreenStars[i].X, (int)startScreenStars[i].Y, 4.0f, Raylib.WHITE, Raylib.BLACK);
-			}
-
-			Color[] colors = { Raylib.LIGHTGRAY, Raylib.GRAY, Raylib.DARKGRAY, Raylib.GREEN };
-			string gameName1 = "SPACE";
-			string gameName2 = "INVADERS";
-			int fontSize = 60;
-			for (int i = 0; i < colors.Length; i++)
-			{
-				double change = Math.Sin(Raylib.GetTime() + i) * 4.0;
-				double y = 120 + change * 14.0;
-
-				DrawTextCentered(gameName1, (int)(y), fontSize, colors[i]);
-				DrawTextCentered(gameName2, (int)(y + 60), fontSize, colors[i]);
-			}
-
-			string press = "Press ENTER";
-			DrawTextCentered(press, window_height/2, 30, Raylib.YELLOW);
-		}
-
 
 
 		// Score screen

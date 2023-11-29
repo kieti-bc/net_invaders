@@ -8,10 +8,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="data\styles\jungle.rgs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="data\styles\jungle.rgs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="data\audio\enemyExplode.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="data\fonts\ka1.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="data\images\enemyBlack1.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -28,6 +44,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="data\images\playerShip2_green.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="data\styles\invaders.rgs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="data\styles\testi.rgs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
